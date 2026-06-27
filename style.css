@@ -83,7 +83,14 @@ body {
   50%      { transform: translate3d(0, -7px, 0); }
 }
 
-.fade-in       { opacity: 0; animation: fadeInUp .9s ease forwards .2s; }
+@keyframes scaleUp {
+  0% { transform: scale(0.65); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.scale-up {
+  animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
 .fade-in-delay { opacity: 0; animation: fadeInUp .9s ease forwards .6s; }
 
 .fade-in-section {
@@ -906,7 +913,7 @@ body {
   word-break: break-all;
 }
 
-/* Botões do Mercado Pago e Ação */
+/* Botões de Ação do Modal */
 .modal-actions {
   display: flex;
   flex-direction: column;
@@ -914,35 +921,9 @@ body {
   margin-bottom: 16px;
   width: 100%;
 }
-.btn-mp-redirect {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: var(--radius-btn);
-  padding: 16px 20px;
-  width: 100%;
-  background: linear-gradient(135deg, #00aae4 0%, #007ebb 100%);
-  color: var(--white);
-  box-shadow: 0 4px 16px rgba(0, 170, 228, 0.3);
-  transition: transform var(--transition), box-shadow var(--transition);
-  text-decoration: none;
-  text-align: center;
-}
-.btn-mp-redirect:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 170, 228, 0.4);
-}
-.btn-mp-redirect:active {
-  transform: translateY(0);
-}
 
 .copy-feedback { font-size: 14px; font-weight: 600; color: var(--sage-dark); text-align: center; animation: fadeInUp .3s ease; }
-.modal-hint { font-size: 12px; color: var(--text-light); line-height: 1.65; text-align: center; }
+.modal-hint { font-size: 12px; color: var(--text-light); line-height: 1.65; text-align: center; margin-top: 10px; }
 
 /* ══════════════════════════════════════
    RESPONSIVE — TABLET 640px

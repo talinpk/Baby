@@ -348,77 +348,106 @@
     style="display:none">
     <div class="modal-box">
       <button class="modal-close" id="modalClose" aria-label="Fechar modal">✕</button>
-      <div class="modal-icon" aria-hidden="true">💸</div>
-      <h3 class="modal-title cursive" id="modalTitle">Contribuir</h3>
-      <p class="modal-meta-name" id="modalMetaName"></p>
 
-      <!-- SEÇÃO 1: Escolha do Valor (visível apenas para doações livres) -->
-      <div class="modal-amount-section" id="modalAmountSection" style="display:none">
-        <label class="amount-input-label">Escolha o Valor do Presente</label>
-        <div class="amount-input-wrapper">
-          <span class="amount-symbol">R$</span>
-          <input type="number" id="customAmountInput" class="amount-input" value="50" min="1" step="1" />
-        </div>
-        <div class="quick-amounts">
-          <button type="button" class="btn-quick-amount" data-amount="20">R$ 20</button>
-          <button type="button" class="btn-quick-amount active" data-amount="50">R$ 50</button>
-          <button type="button" class="btn-quick-amount" data-amount="100">R$ 100</button>
-          <button type="button" class="btn-quick-amount" data-amount="200">R$ 200</button>
-        </div>
-      </div>
+      <!-- TELA DE PAGAMENTO -->
+      <div id="modalPaymentScreen">
+        <div class="modal-icon" aria-hidden="true">💸</div>
+        <h3 class="modal-title cursive" id="modalTitle">Contribuir</h3>
+        <p class="modal-meta-name" id="modalMetaName"></p>
 
-      <!-- SEÇÃO 2: QR Code Dinâmico -->
-      <div class="modal-qr-container">
-        <div class="qr-placeholder-loading" id="qrLoading" style="display:none">
-          <div class="qr-spinner"></div>
-          <span>Gerando PIX...</span>
+        <!-- SEÇÃO 1: Escolha do Valor (visível apenas para doações livres) -->
+        <div class="modal-amount-section" id="modalAmountSection" style="display:none">
+          <label class="amount-input-label">Escolha o Valor do Presente</label>
+          <div class="amount-input-wrapper">
+            <span class="amount-symbol">R$</span>
+            <input type="number" id="customAmountInput" class="amount-input" value="50" min="1" step="1" />
+          </div>
+          <div class="quick-amounts">
+            <button type="button" class="btn-quick-amount" data-amount="20">R$ 20</button>
+            <button type="button" class="btn-quick-amount active" data-amount="50">R$ 50</button>
+            <button type="button" class="btn-quick-amount" data-amount="100">R$ 100</button>
+            <button type="button" class="btn-quick-amount" data-amount="200">R$ 200</button>
+          </div>
         </div>
-        <img src="" alt="QR Code PIX" id="qrCodeImg" class="qr-code-img" style="display:none" />
-      </div>
 
-      <!-- SEÇÃO 3: Informações do PIX (Chave, Titular e Copia e Cola) -->
-      <div class="modal-pix-info">
-        <p class="modal-label">Titular da conta</p>
-        <p class="modal-titular" id="modalTitular">Jessica Souza</p>
-        <div class="modal-key-wrap">
-          <div class="modal-key-row">
-            <div>
-              <p class="modal-label">Chave PIX</p>
-              <p class="modal-key" id="pixKey">jessica@email.com</p>
+        <!-- SEÇÃO 1.5: Identificação do Convidado -->
+        <div class="form-group" style="text-align: left; margin: 15px 0;">
+          <label for="nomeContribuinte" class="form-label" style="font-size: 13px; font-weight: 600; color: #5a7a65;">Seu Nome (para identificarmos seu presente)</label>
+          <input type="text" id="nomeContribuinte" class="form-input" placeholder="Digite seu nome completo..." required style="padding: 10px; font-size: 14px;" />
+          <span class="form-error" id="erroNomeContribuinte" role="alert"></span>
+        </div>
+
+        <!-- SEÇÃO 2: QR Code Dinâmico -->
+        <div class="modal-qr-container">
+          <div class="qr-placeholder-loading" id="qrLoading" style="display:none">
+            <div class="qr-spinner"></div>
+            <span>Gerando PIX...</span>
+          </div>
+          <img src="" alt="QR Code PIX" id="qrCodeImg" class="qr-code-img" style="display:none" />
+        </div>
+
+        <!-- SEÇÃO 3: Informações do PIX (Chave, Titular e Copia e Cola) -->
+        <div class="modal-pix-info">
+          <p class="modal-label">Titular da conta</p>
+          <p class="modal-titular" id="modalTitular">Jessica Souza</p>
+          <div class="modal-key-wrap">
+            <div class="modal-key-row">
+              <div>
+                <p class="modal-label">Chave PIX</p>
+                <p class="modal-key" id="pixKey">jessica@email.com</p>
+              </div>
+              <button type="button" class="btn-copy" id="btnCopyPix" aria-label="Copiar chave PIX">
+                📋 &nbsp;Copiar Chave
+              </button>
             </div>
-            <button type="button" class="btn-copy" id="btnCopyPix" aria-label="Copiar chave PIX">
-              📋 &nbsp;Copiar Chave
-            </button>
+            
+            <div class="modal-copia-cola-section" id="copiaColaSection" style="display:none">
+              <p class="modal-label">PIX Copia e Cola</p>
+              <textarea class="copia-cola-textarea" id="copiaColaText" readonly></textarea>
+              <button type="button" class="btn btn-pix" id="btnCopyCopiaCola" style="padding: 10px; font-size: 13px;">
+                📋 &nbsp;Copiar Código PIX
+              </button>
+            </div>
           </div>
           
-          <div class="modal-copia-cola-section" id="copiaColaSection" style="display:none">
-            <p class="modal-label">PIX Copia e Cola</p>
-            <textarea class="copia-cola-textarea" id="copiaColaText" readonly></textarea>
-            <button type="button" class="btn btn-pix" id="btnCopyCopiaCola" style="padding: 10px; font-size: 13px;">
-              📋 &nbsp;Copiar Código PIX
-            </button>
+          <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite" style="display:none">
+            ✅ Copiado!
           </div>
         </div>
-        
-        <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite" style="display:none">
-          ✅ Copiado!
+
+        <!-- SEÇÃO 4: Botão de Confirmação Manual -->
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button type="button" class="btn btn-submit" id="btnConfirmarPagamento" style="width: 100%; background: #7a9e87; color: white;">
+            <span id="btnConfirmarTexto">💚 &nbsp;Já fiz o PIX! Confirmar Presente</span>
+            <span id="btnConfirmarLoader" class="btn-loader" style="display:none" aria-hidden="true">⏳</span>
+          </button>
         </div>
+
+        <p class="modal-hint">Após contribuir, confirme no recibo que o nome do titular está correto. Obrigado pela generosidade! 💚</p>
       </div>
 
-      <!-- SEÇÃO 4: Botões do Mercado Pago e Ação -->
-      <div class="modal-actions">
-        <a href="#" target="_blank" rel="noopener noreferrer" class="btn-mp-redirect" id="btnMpRedirect" style="display:none">
-          💙 &nbsp;Pagar via Mercado Pago
-        </a>
+      <!-- TELA DE SUCESSO -->
+      <div id="modalSuccessScreen" style="display:none; text-align: center; padding: 20px 10px;">
+        <div class="success-icon" style="font-size: 55px; margin-bottom: 15px; animation: scaleUp 0.5s ease;">🎉</div>
+        <h3 class="modal-title cursive" style="font-size: 32px; color: #5a7a65; margin-bottom: 15px;">Muito Obrigado!</h3>
+        <p style="font-size: 16px; color: #555; line-height: 1.6; margin-bottom: 25px;">
+          Sua contribuição foi enviada com sucesso e as metas do enxoval foram atualizadas em tempo real! <br>
+          Agradecemos de coração por fazer parte deste momento especial conosco. 💚
+        </p>
+        <button type="button" class="btn" id="btnFecharSucesso" style="background: #7a9e87; color: white; padding: 12px 35px; border-radius: 30px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-block;">
+          Fechar Janela
+        </button>
       </div>
 
-      <p class="modal-hint">Após contribuir, confirme no recibo que o nome do titular está correto. Obrigado pela generosidade! 💚</p>
     </div>
   </div>
 
   <!-- Firebase App & Firestore SDKs (Compat version for UMD script inclusion) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
   <script src="script.js?v=4"></script>
 </body>

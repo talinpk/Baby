@@ -320,10 +320,8 @@ async function loadAndSyncData() {
 
     // Metas
     const storedMetas = localStorage.getItem("metasMock");
-    let metas = metasMock;
-    if (storedMetas) {
-      metas = JSON.parse(storedMetas);
-    } else {
+    let metas = storedMetas ? JSON.parse(storedMetas) : metasMock;
+    if (!storedMetas) {
       localStorage.setItem("metasMock", JSON.stringify(metasMock));
     }
     renderProgressBars(metas);
@@ -340,13 +338,8 @@ async function loadAndSyncData() {
       if (dbPix.chave) PIX_CONFIG.chave = dbPix.chave;
       if (dbPix.titular) PIX_CONFIG.titular = dbPix.titular;
       if (dbPix.cidade) PIX_CONFIG.cidade = dbPix.cidade;
-      if (dbPix.mercadoPagoMimosUrl !== undefined) PIX_CONFIG.mercadoPagoMimosUrl = dbPix.mercadoPagoMimosUrl;
-      if (dbPix.mercadoPagoItens) {
-        PIX_CONFIG.mercadoPagoItens = { ...PIX_CONFIG.mercadoPagoItens, ...dbPix.mercadoPagoItens };
-      }
-      console.log("[Firebase] Configurações de PIX/MP carregadas do Firestore.");
+      console.log("[Firebase] Configurações de PIX carregadas do Firestore.");
     } else {
-      // Cria o documento com os defaults locais para servir de modelo no painel do Firebase
       await pixRef.set(PIX_CONFIG);
       console.log("[Firebase] Template de PIX_CONFIG criado no Firestore.");
     }
@@ -357,29 +350,32 @@ async function loadAndSyncData() {
     if (docPalpites.exists) {
       palpitesCount = docPalpites.data();
     } else {
-      // Cria o documento se não existir
       await palpitesRef.set({ menino: 0, menina: 0 });
       palpitesCount = { menino: 0, menina: 0 };
     }
     updatePalpiteCounters();
 
-    // 2. Carrega Metas do Firestore
-    const metasSnapshot = await db.collection("metas_pix").get();
-    let metas = {};
-    if (!metasSnapshot.empty) {
-      metasSnapshot.forEach(doc => {
-        metas[doc.id] = doc.data();
-      });
-      console.log("[Firebase] Metas (Mimos) carregadas com sucesso. IDs encontrados:", Object.keys(metas), metas);
-    } else {
-      // Popula dados iniciais no Firestore se estiver vazio
-      for (const key in metasMock) {
-        await db.collection("metas_pix").doc(key).set(metasMock[key]);
+    // 2. Carrega e escuta Metas do Firestore em tempo real
+    db.collection("metas_pix").onSnapshot(snapshot => {
+      let metas = {};
+      if (!snapshot.empty) {
+        snapshot.forEach(doc => {
+          metas[doc.id] = doc.data();
+        });
+        console.log("[Firebase] Metas atualizadas em tempo real:", Object.keys(metas));
+        renderProgressBars(metas);
+      } else {
+        // Popula dados iniciais no Firestore se estiver vazio
+        (async () => {
+          for (const key in metasMock) {
+            await db.collection("metas_pix").doc(key).set(metasMock[key]);
+          }
+        })();
       }
-      metas = metasMock;
-      console.log("[Firebase] Metas vazias. Populadas com valores padrão:", Object.keys(metas));
-    }
-    renderProgressBars(metas);
+    }, error => {
+      console.error("[Firebase] Erro no onSnapshot das metas:", error);
+      renderProgressBars(metasMock);
+    });
 
   } catch (error) {
     console.error("[Firebase] Erro ao sincronizar dados. Usando fallbacks locais.", error);
@@ -546,17 +542,27 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnCopyPix        = document.getElementById('btnCopyPix');
   const btnCopyCopiaCola  = document.getElementById('btnCopyCopiaCola');
   const copyFeedback      = document.getElementById('copyFeedback');
-  const btnMpRedirect     = document.getElementById('btnMpRedirect');
+  
+  // Novos Elementos para o fluxo manual e sucesso
+  const paymentScreen     = document.getElementById('modalPaymentScreen');
+  const successScreen     = document.getElementById('modalSuccessScreen');
+  const nameContribuinte  = document.getElementById('nomeContribuinte');
+  const errorNameContr    = document.getElementById('erroNomeContribuinte');
+  const btnConfirmar      = document.getElementById('btnConfirmarPagamento');
+  const btnConfirmarTxt   = document.getElementById('btnConfirmarTexto');
+  const btnConfirmarLoad  = document.getElementById('btnConfirmarLoader');
+  const btnFecharSucesso  = document.getElementById('btnFecharSucesso');
 
   let currentTitulo = "";
-  let currentTipo = ""; // 'mimos' | 'carrinho'
-  let currentValorFixo = 0;
+  let currentMetaId = ""; // fraldas | higiene | ninho
+  let currentAmount = 50;
 
   // Atualiza as chaves do PIX da configuração global
   if (pixKeyEl) pixKeyEl.textContent = PIX_CONFIG.chave;
   if (modalTitularEl) modalTitularEl.textContent = PIX_CONFIG.titular;
 
   function generateAndShowPayment(amount) {
+    currentAmount = amount;
     if (qrLoadingEl) qrLoadingEl.style.display = "flex";
     if (qrCodeImgEl) qrCodeImgEl.style.display = "none";
     if (copiaColaText) copiaColaText.value = "";
@@ -592,25 +598,24 @@ window.addEventListener('DOMContentLoaded', () => {
       };
       tempImg.src = qrUrl;
     }
-
-    // Configura Mercado Pago Redirect
-    let mpUrl = PIX_CONFIG.mercadoPagoMimosUrl;
-
-    if (btnMpRedirect) {
-      if (mpUrl) {
-        btnMpRedirect.href = mpUrl;
-        btnMpRedirect.style.display = "inline-flex";
-      } else {
-        btnMpRedirect.style.display = "none";
-      }
-    }
   }
 
-  function openModal(titulo, tipo, valorFixo) {
+  function openModal(titulo, metaId, valorFixo) {
     if (!modal) return;
     currentTitulo = titulo;
-    currentTipo = tipo;
-    currentValorFixo = valorFixo;
+    currentMetaId = metaId;
+    currentAmount = valorFixo > 0 ? valorFixo : 50;
+
+    // Resetar telas do modal
+    if (paymentScreen) paymentScreen.style.display = "block";
+    if (successScreen) successScreen.style.display = "none";
+    if (errorNameContr) errorNameContr.textContent = "";
+    
+    // Preenche o nome do contribuinte com o do RSVP se houver
+    const rsvpNome = document.getElementById('nomeConvidado');
+    if (nameContribuinte && rsvpNome && rsvpNome.value.trim()) {
+      nameContribuinte.value = rsvpNome.value.trim();
+    }
 
     // Atualiza as chaves do PIX da modal de forma dinâmica com as configurações atualizadas
     if (pixKeyEl) pixKeyEl.textContent = PIX_CONFIG.chave;
@@ -620,15 +625,14 @@ window.addEventListener('DOMContentLoaded', () => {
       metaNameEl.textContent = `Presentear: ${titulo}`;
     }
 
-    if (tipo === 'mimos') {
-      // Permite alterar o valor
+    // Como as metas sempre podem doar qualquer valor na seção "Mimos", liberamos o valor customizado
+    if (valorFixo === 0) {
       if (amountSectionEl) amountSectionEl.style.display = "flex";
       if (modalTitleEl) modalTitleEl.textContent = "Contribuir via PIX";
       
       const defaultAmount = customAmountInput ? Number(customAmountInput.value) : 50;
       generateAndShowPayment(defaultAmount);
     } else {
-      // Valor fixo
       if (amountSectionEl) amountSectionEl.style.display = "none";
       if (modalTitleEl) modalTitleEl.textContent = `Presentear (R$ ${valorFixo})`;
       generateAndShowPayment(valorFixo);
@@ -648,10 +652,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Monitora cliques para abrir modal
   document.addEventListener('click', e => {
-    // 1. Cliques nos cards de "Mimos" (valor livre)
+    // Cliques nos cards de "Mimos" (valor livre)
     const btnPix = e.target.closest('.btn-pix');
     if (btnPix) {
-      openModal(btnPix.dataset.titulo || 'Mimos para o Bebê', 'mimos', 0);
+      const metaId = btnPix.dataset.meta || 'fraldas';
+      openModal(btnPix.dataset.titulo || 'Mimos para o Bebê', metaId, 0);
       return;
     }
   });
@@ -733,6 +738,104 @@ window.addEventListener('DOMContentLoaded', () => {
       copyText(copiaColaText.value, btnCopyCopiaCola);
     }
   });
+
+  // Fluxo de Confirmação Manual do Pagamento (Modo Confiança)
+  btnConfirmar?.addEventListener('click', async () => {
+    const nome = nameContribuinte ? nameContribuinte.value.trim() : "";
+    
+    if (!nome) {
+      if (errorNameContr) errorNameContr.textContent = "⚠️ Por favor, informe seu nome para confirmar o presente.";
+      nameContribuinte?.focus();
+      return;
+    }
+    
+    if (errorNameContr) errorNameContr.textContent = "";
+
+    // Habilita loading
+    if (btnConfirmarTxt) btnConfirmarTxt.style.display = 'none';
+    if (btnConfirmarLoad) btnConfirmarLoad.style.display = 'inline';
+    if (btnConfirmar) btnConfirmar.disabled = true;
+
+    try {
+      const payData = {
+        nome_convidado: nome,
+        valor: currentAmount,
+        meta_id: currentMetaId,
+        status: "confirmado_pelo_convidado",
+        data_confirmacao: isFirebaseEnabled ? firebase.firestore.FieldValue.serverTimestamp() : new Date()
+      };
+
+      if (isFirebaseEnabled) {
+        const metaRef = db.collection("metas_pix").doc(currentMetaId);
+        
+        // Executa transação para garantir consistência
+        await db.runTransaction(async (transaction) => {
+          const doc = await transaction.get(metaRef);
+          if (!doc.exists) {
+            throw new Error(`Meta ${currentMetaId} não encontrada no banco!`);
+          }
+          const currentArrecadado = Number(doc.data().valor_arrecadado) || 0;
+          
+          // 1. Atualiza valor arrecadado
+          transaction.update(metaRef, {
+            valor_arrecadado: currentArrecadado + currentAmount
+          });
+          
+          // 2. Salva registro de doação
+          const newPayRef = db.collection("pagamentos_pix").doc();
+          transaction.set(newPayRef, payData);
+        });
+        console.log("[Firebase] Doação registrada com sucesso no Firestore.");
+      } else {
+        // Fallback local: LocalStorage
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simula delay de rede
+        const storedMetas = localStorage.getItem("metasMock");
+        let metas = storedMetas ? JSON.parse(storedMetas) : metasMock;
+        
+        if (metas[currentMetaId]) {
+          metas[currentMetaId].valor_arrecadado = (Number(metas[currentMetaId].valor_arrecadado) || 0) + currentAmount;
+          localStorage.setItem("metasMock", JSON.stringify(metas));
+          renderProgressBars(metas);
+        }
+        
+        // Salva histórico de pagamentos locais
+        let localPayments = JSON.parse(localStorage.getItem("localPayments") || "[]");
+        localPayments.push(payData);
+        localStorage.setItem("localPayments", JSON.stringify(localPayments));
+      }
+
+      // Dispara a comemoração com confetes
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+        
+        // Dispara uma segunda explosão rápida nas laterais
+        setTimeout(() => {
+          confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 } });
+          confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 } });
+        }, 200);
+      }
+
+      // Transiciona a modal para a tela de sucesso
+      if (paymentScreen) paymentScreen.style.display = "none";
+      if (successScreen) successScreen.style.display = "block";
+
+    } catch (err) {
+      console.error("[Confirmação PIX] Erro ao registrar presente:", err);
+      alert("Desculpe, ocorreu um erro ao registrar sua confirmação. Por favor, tente novamente.");
+    } finally {
+      // Reseta loading
+      if (btnConfirmarTxt) btnConfirmarTxt.style.display = 'inline';
+      if (btnConfirmarLoad) btnConfirmarLoad.style.display = 'none';
+      if (btnConfirmar) btnConfirmar.disabled = false;
+    }
+  });
+
+  // Fechar no botão da tela de sucesso
+  btnFecharSucesso?.addEventListener('click', closeModal);
 
 })();
 
