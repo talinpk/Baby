@@ -153,3 +153,29 @@ WHERE item_nome = $1
 RETURNING *;
 
 */
+
+-- ══════════════════════════════════════
+-- TABELA: itens_enxoval
+-- Lista de presentes do Carrinho de Bebê com metas individuais
+-- ══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS itens_enxoval (
+    id                SERIAL          PRIMARY KEY,
+    nome_item         VARCHAR(100)    NOT NULL UNIQUE,
+    meta_valor        NUMERIC(10, 2)  NOT NULL,
+    valor_arrecadado  NUMERIC(10, 2)  DEFAULT 0.00,
+    icone_path        VARCHAR(255),
+    concluido         BOOLEAN         DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_itens_enxoval_concluido ON itens_enxoval (concluido);
+
+-- ── DADOS INICIAIS: itens_enxoval ──
+INSERT INTO itens_enxoval (nome_item, meta_valor, valor_arrecadado, icone_path, concluido)
+VALUES
+    ('Carrinho de Bebê', 1200.00, 600.00, '🛒', FALSE),
+    ('Banheira com Suporte', 250.00, 250.00, '🛁', TRUE),
+    ('Cadeirão de Alimentação', 400.00, 150.00, '🪑', FALSE),
+    ('Kit de Mamadeiras', 180.00, 180.00, '🍼', TRUE),
+    ('Bolsa Maternidade', 300.00, 90.00, '👜', FALSE)
+ON CONFLICT (nome_item) DO NOTHING;
+
