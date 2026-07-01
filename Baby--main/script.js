@@ -546,8 +546,6 @@ window.addEventListener('DOMContentLoaded', () => {
   // Novos Elementos para o fluxo manual e sucesso
   const paymentScreen     = document.getElementById('modalPaymentScreen');
   const successScreen     = document.getElementById('modalSuccessScreen');
-  const nameContribuinte  = document.getElementById('nomeContribuinte');
-  const errorNameContr    = document.getElementById('erroNomeContribuinte');
   const btnConfirmar      = document.getElementById('btnConfirmarPagamento');
   const btnConfirmarTxt   = document.getElementById('btnConfirmarTexto');
   const btnConfirmarLoad  = document.getElementById('btnConfirmarLoader');
@@ -609,13 +607,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // Resetar telas do modal
     if (paymentScreen) paymentScreen.style.display = "block";
     if (successScreen) successScreen.style.display = "none";
-    if (errorNameContr) errorNameContr.textContent = "";
-    
-    // Preenche o nome do contribuinte com o do RSVP se houver
-    const rsvpNome = document.getElementById('nomeConvidado');
-    if (nameContribuinte && rsvpNome && rsvpNome.value.trim()) {
-      nameContribuinte.value = rsvpNome.value.trim();
-    }
 
     // Atualiza as chaves do PIX da modal de forma dinâmica com as configurações atualizadas
     if (pixKeyEl) pixKeyEl.textContent = PIX_CONFIG.chave;
@@ -630,8 +621,8 @@ window.addEventListener('DOMContentLoaded', () => {
       if (amountSectionEl) amountSectionEl.style.display = "flex";
       if (modalTitleEl) modalTitleEl.textContent = "Contribuir via PIX";
       
-      const defaultAmount = customAmountInput ? Number(customAmountInput.value) : 50;
-      generateAndShowPayment(defaultAmount);
+      if (customAmountInput) customAmountInput.value = 50;
+      generateAndShowPayment(50);
     } else {
       if (amountSectionEl) amountSectionEl.style.display = "none";
       if (modalTitleEl) modalTitleEl.textContent = `Presentear (R$ ${valorFixo})`;
@@ -675,33 +666,9 @@ window.addEventListener('DOMContentLoaded', () => {
     customAmountInput.addEventListener('input', () => {
       let amount = Number(customAmountInput.value);
       if (amount <= 0) amount = 1;
-      
-      // Desmarca os botões rápidos se o valor digitado não coincidir
-      document.querySelectorAll('.btn-quick-amount').forEach(btn => {
-        if (Number(btn.dataset.amount) === amount) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-
       generateAndShowPayment(amount);
     });
   }
-
-  // Cliques nos botões rápidos de valor
-  document.querySelectorAll('.btn-quick-amount').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.btn-quick-amount').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      const amount = Number(btn.dataset.amount);
-      if (customAmountInput) {
-        customAmountInput.value = amount;
-      }
-      generateAndShowPayment(amount);
-    });
-  });
 
   // Funções de copiar
   async function copyText(text, targetBtn) {
@@ -741,24 +708,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Fluxo de Confirmação Manual do Pagamento (Modo Confiança)
   btnConfirmar?.addEventListener('click', async () => {
-    const nome = nameContribuinte ? nameContribuinte.value.trim() : "";
-    
-    if (!nome) {
-      if (errorNameContr) errorNameContr.textContent = "⚠️ Por favor, informe seu nome para confirmar o presente.";
-      nameContribuinte?.focus();
-      return;
-    }
-    
-    if (errorNameContr) errorNameContr.textContent = "";
-
     // Habilita loading
     if (btnConfirmarTxt) btnConfirmarTxt.style.display = 'none';
     if (btnConfirmarLoad) btnConfirmarLoad.style.display = 'inline';
     if (btnConfirmar) btnConfirmar.disabled = true;
 
     try {
+      // Busca o nome do convidado informado no RSVP (se houver)
+      const rsvpNomeEl = document.getElementById('nomeConvidado');
+      const nomeConvidado = rsvpNomeEl ? rsvpNomeEl.value.trim() : "";
+
       const payData = {
-        nome_convidado: nome,
+        nome_convidado: nomeConvidado || "Anônimo",
         valor: currentAmount,
         meta_id: currentMetaId,
         status: "confirmado_pelo_convidado",
@@ -766,37 +727,12 @@ window.addEventListener('DOMContentLoaded', () => {
       };
 
       if (isFirebaseEnabled) {
-        const metaRef = db.collection("metas_pix").doc(currentMetaId);
-        
-        // Executa transação para garantir consistência
-        await db.runTransaction(async (transaction) => {
-          const doc = await transaction.get(metaRef);
-          if (!doc.exists) {
-            throw new Error(`Meta ${currentMetaId} não encontrada no banco!`);
-          }
-          const currentArrecadado = Number(doc.data().valor_arrecadado) || 0;
-          
-          // 1. Atualiza valor arrecadado
-          transaction.update(metaRef, {
-            valor_arrecadado: currentArrecadado + currentAmount
-          });
-          
-          // 2. Salva registro de doação
-          const newPayRef = db.collection("pagamentos_pix").doc();
-          transaction.set(newPayRef, payData);
-        });
-        console.log("[Firebase] Doação registrada com sucesso no Firestore.");
+        // Apenas salva o registro de doação na coleção para controle dos pais, SEM alterar a barra de progresso
+        await db.collection("pagamentos_pix").add(payData);
+        console.log("[Firebase] Doação registrada com sucesso no Firestore (sem alterar meta).");
       } else {
         // Fallback local: LocalStorage
         await new Promise(resolve => setTimeout(resolve, 800)); // Simula delay de rede
-        const storedMetas = localStorage.getItem("metasMock");
-        let metas = storedMetas ? JSON.parse(storedMetas) : metasMock;
-        
-        if (metas[currentMetaId]) {
-          metas[currentMetaId].valor_arrecadado = (Number(metas[currentMetaId].valor_arrecadado) || 0) + currentAmount;
-          localStorage.setItem("metasMock", JSON.stringify(metas));
-          renderProgressBars(metas);
-        }
         
         // Salva histórico de pagamentos locais
         let localPayments = JSON.parse(localStorage.getItem("localPayments") || "[]");

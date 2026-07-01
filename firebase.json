@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "convite-august-sofi",
+    "public": "Baby--main",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <meta name="theme-color" content="#f5f0e8" />
   <title>Chá Revelação · Thalyson & Jessica</title>
+
+  <!-- Favicon / Angel Icon for Browser Tab -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👼</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -199,6 +202,7 @@
         <label for="nomeConvidado" class="form-label">Seu Nome Completo</label>
         <input type="text" id="nomeConvidado" name="nome" class="form-input" placeholder="Digite seu nome aqui..."
           autocomplete="name" required aria-required="true" />
+        <p class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-light); font-style: italic;">* O convite é individual.</p>
         <span class="form-error" id="erroNome" role="alert"></span>
       </div>
 
@@ -362,19 +366,6 @@
             <span class="amount-symbol">R$</span>
             <input type="number" id="customAmountInput" class="amount-input" value="50" min="1" step="1" />
           </div>
-          <div class="quick-amounts">
-            <button type="button" class="btn-quick-amount" data-amount="20">R$ 20</button>
-            <button type="button" class="btn-quick-amount active" data-amount="50">R$ 50</button>
-            <button type="button" class="btn-quick-amount" data-amount="100">R$ 100</button>
-            <button type="button" class="btn-quick-amount" data-amount="200">R$ 200</button>
-          </div>
-        </div>
-
-        <!-- SEÇÃO 1.5: Identificação do Convidado -->
-        <div class="form-group" style="text-align: left; margin: 15px 0;">
-          <label for="nomeContribuinte" class="form-label" style="font-size: 13px; font-weight: 600; color: #5a7a65;">Seu Nome (para identificarmos seu presente)</label>
-          <input type="text" id="nomeContribuinte" class="form-input" placeholder="Digite seu nome completo..." required style="padding: 10px; font-size: 14px;" />
-          <span class="form-error" id="erroNomeContribuinte" role="alert"></span>
         </div>
 
         <!-- SEÇÃO 2: QR Code Dinâmico -->
@@ -431,7 +422,7 @@
         <div class="success-icon" style="font-size: 55px; margin-bottom: 15px; animation: scaleUp 0.5s ease;">🎉</div>
         <h3 class="modal-title cursive" style="font-size: 32px; color: #5a7a65; margin-bottom: 15px;">Muito Obrigado!</h3>
         <p style="font-size: 16px; color: #555; line-height: 1.6; margin-bottom: 25px;">
-          Sua contribuição foi enviada com sucesso e as metas do enxoval foram atualizadas em tempo real! <br>
+          Sua contribuição foi enviada com sucesso! <br>
           Agradecemos de coração por fazer parte deste momento especial conosco. 💚
         </p>
         <button type="button" class="btn" id="btnFecharSucesso" style="background: #7a9e87; color: white; padding: 12px 35px; border-radius: 30px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; display: inline-block;">
